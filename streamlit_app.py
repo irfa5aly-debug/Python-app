@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(
     page_title="Hospital Management System",
-    page_icon="🏥",
+    page_icon="🩻🪫",
     layout="wide"
 )
 
@@ -15,7 +15,7 @@ if "patients" not in st.session_state:
 if "appointments" not in st.session_state:
     st.session_state.appointments = []
 
-st.title("🏥 Hospital Management System")
+st.title("🩻🪫 Hospital Management System")
 st.write("Manage patients and appointments.")
 
 # Sidebar navigation
