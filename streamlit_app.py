@@ -1,156 +1,93 @@
 
+
 import streamlit as st
-import pandas as pd
 
 st.set_page_config(
-    page_title="Hospital Management System",
-    page_icon="🩻🪫",
+    page_title="Restaurant App",
+    page_icon="🍽️",
     layout="wide"
 )
 
-# Initialize temporary data
-if "patients" not in st.session_state:
-    st.session_state.patients = []
+# Restaurant heading
+st.title("🍽️ Delicious Restaurant")
+st.write("Welcome! Order your favorite food.")
+st.divider()
 
-if "appointments" not in st.session_state:
-    st.session_state.appointments = []
+# Food menu
+menu = {
+    "Burger": 450,
+    "Pizza": 1200,
+    "Biryani": 350,
+    "Zinger Burger": 550,
+    "French Fries": 200,
+    "Cold Drink": 100
+}
 
-st.title("🩻🪫 Hospital Management System")
-st.write("Manage patients and appointments.")
+st.header("📋 Our Menu")
 
-# Sidebar navigation
-menu = st.sidebar.selectbox(
-    "Navigation",
-    ["Dashboard", "Register Patient", "Book Appointment", "View Records"]
-)
+# Store quantities
+if "cart" not in st.session_state:
+    st.session_state.cart = {}
 
-# Dashboard
-if menu == "Dashboard":
-    st.header("Hospital Dashboard")
-
-    col1, col2 = st.columns(2)
+# Display menu
+for food, price in menu.items():
+    col1, col2, col3 = st.columns([3, 2, 2])
 
     with col1:
-        st.metric("Total Patients", len(st.session_state.patients))
+        st.subheader(food)
 
     with col2:
-        st.metric(
-            "Total Appointments",
-            len(st.session_state.appointments)
+        st.write(f"Price: Rs. {price}")
+
+    with col3:
+        quantity = st.number_input(
+            f"Quantity of {food}",
+            min_value=0,
+            max_value=20,
+            value=st.session_state.cart.get(food, 0),
+            key=food
+        )
+        st.session_state.cart[food] = quantity
+
+st.divider()
+
+# Calculate bill
+st.header("🛒 Your Order")
+
+total = 0
+
+for food, quantity in st.session_state.cart.items():
+    if quantity > 0:
+        price = menu[food] * quantity
+        total += price
+        st.write(
+            f"{food} × {quantity} = Rs. {price}"
         )
 
-    st.info("Use the sidebar to manage hospital records.")
+st.divider()
 
-# Patient registration
-elif menu == "Register Patient":
-    st.header("Register a New Patient")
+st.subheader(f"💰 Total Bill: Rs. {total}")
 
-    with st.form("patient_form"):
-        name = st.text_input("Patient Name")
-        age = st.number_input(
-            "Age", min_value=0, max_value=120, value=18
-        )
-        gender = st.selectbox(
-            "Gender", ["Female", "Male", "Other"]
-        )
-        phone = st.text_input("Phone Number")
+# Customer details
+st.header("👤 Customer Details")
 
-        submitted = st.form_submit_button("Register Patient")
+name = st.text_input("Customer Name")
+phone = st.text_input("Phone Number")
 
-    if submitted:
-        if not name.strip():
-            st.error("Please enter the patient's name.")
-        else:
-            patient_id = f"P{len(st.session_state.patients) + 1:03d}"
+order_type = st.radio(
+    "Order Type",
+    ["Dine In", "Takeaway", "Delivery"],
+    horizontal=True
+)
 
-            st.session_state.patients.append({
-                "Patient ID": patient_id,
-                "Name": name.strip(),
-                "Age": int(age),
-                "Gender": gender,
-                "Phone": phone.strip()
-            })
-
-            st.success(f"Patient registered successfully! ID: {patient_id}")
-
-# Appointment booking
-elif menu == "Book Appointment":
-    st.header("Book an Appointment")
-
-    if not st.session_state.patients:
-        st.warning("Register a patient before booking an appointment.")
+if st.button("✅ Place Order", type="primary"):
+    if not name.strip():
+        st.error("Please enter your name.")
+    elif total == 0:
+        st.error("Please select at least one food item.")
     else:
-        patient_options = {
-            f"{p['Patient ID']} - {p['Name']}": p["Patient ID"]
-            for p in st.session_state.patients
-        }
-
-        with st.form("appointment_form"):
-            selected_patient = st.selectbox(
-                "Select Patient", list(patient_options.keys())
-            )
-
-            doctor = st.selectbox(
-                "Select Doctor",
-                ["Dr. Ahmed", "Dr. Fatima", "Dr. Ali"]
-            )
-
-            appointment_date = st.date_input("Appointment Date")
-            appointment_time = st.time_input("Appointment Time")
-
-            submitted = st.form_submit_button("Book Appointment")
-
-        if submitted:
-            patient_id = patient_options[selected_patient]
-
-            # Prevent double-booking the same doctor and time
-            conflict = any(
-                a["Doctor"] == doctor
-                and a["Date"] == str(appointment_date)
-                and a["Time"] == appointment_time.strftime("%H:%M")
-                for a in st.session_state.appointments
-            )
-
-            if conflict:
-                st.error("This doctor already has an appointment at that time.")
-            else:
-                st.session_state.appointments.append({
-                    "Patient ID": patient_id,
-                    "Patient": selected_patient,
-                    "Doctor": doctor,
-                    "Date": str(appointment_date),
-                    "Time": appointment_time.strftime("%H:%M")
-                })
-
-                st.success("Appointment booked successfully!")
-
-# View records
-elif menu == "View Records":
-    st.header("Hospital Records")
-
-    st.subheader("Patient Records")
-
-    patients_df = pd.DataFrame(st.session_state.patients)
-
-    if not patients_df.empty:
-        search = st.text_input("Search patients by name or ID")
-
-        filtered = patients_df[
-            patients_df["Name"].str.contains(search, case=False, na=False)
-            | patients_df["Patient ID"].str.contains(
-                search, case=False, na=False
-            )
-        ]
-
-        st.dataframe(filtered, use_container_width=True)
-    else:
-        st.info("No patients registered yet.")
-
-    st.subheader("Appointment Records")
-
-    appointments_df = pd.DataFrame(st.session_state.appointments)
-
-    if not appointments_df.empty:
-        st.dataframe(appointments_df, use_container_width=True)
-    else:
-        st.info("No appointments booked yet.")
+        st.success("Order placed successfully!")
+        st.write(f"Customer: {name}")
+        st.write(f"Order Type: {order_type}")
+        st.write(f"Total Amount: Rs. {total}")
+        st.write("Thank you for visiting Delicious Restaurant! ❤️")
